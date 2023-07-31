@@ -52,8 +52,9 @@ def main(config):
 
     # Solver for training and testing StarGAN.
     self = Solver(config)
-    # from logger import Logger
-    # self.logger = Logger(self.log_dir)
+    if self.use_tensorboard:
+        from logger import Logger
+        self.logger = Logger(self.log_dir)
 
     # Learning rate cache for decaying.
     g_lr = self.g_lr
@@ -228,9 +229,9 @@ def main(config):
                 writer.writerow([i+1, et]+[torch.mean(rewardR).item(), torch.mean(rewardF).item()]+\
                                [value for tag, value in loss.items()])
 
-            # if self.use_tensorboard or True:
-            #     for tag, value in loss.items():
-            #         self.logger.scalar_summary(tag, value, i+1)
+            if self.use_tensorboard:
+                for tag, value in loss.items():
+                    self.logger.scalar_summary(tag, value, i+1)
 
 
         # Save model checkpoints.
@@ -304,6 +305,10 @@ if __name__ == '__main__':
     parser.add_argument('--model_save_step', type=int, default=1000)
     parser.add_argument('--lr_update_step', type=int, default=500)
 
+    # my
+    parser.add_argument('--q_dev', type=str, default="default", help="which pennylane engine use for simulation")
+
+
     config = parser.parse_args()
     if config.complexity == 'mr':
         config.g_conv_dim = [128]
@@ -322,8 +327,19 @@ if __name__ == '__main__':
         
     print(config)
     
-    dev = qml.device('default.qubit', wires=config.qubits)
-    @qml.qnode(dev, interface='torch')
+    kwargs = {}
+    if config.q_dev == "default":
+        dev = qml.device('default.qubit', wires=config.qubits)
+    elif config.q_dev == "lightning":
+        dev = qml.device('lightning.qubit', wires=config.qubits)
+        kwargs["diff_method"] = "adjoint"
+    elif config.q_dev == "lightning-gpu":
+        dev = qml.device('lightning.gpu', wires=config.qubits)
+        kwargs["diff_method"] = "adjoint"
+    else:
+        assert False, "unsupported q_device"
+
+    @qml.qnode(dev, interface='torch', **kwargs)
     def gen_circuit(w):
         # random noise as generator input
         z1 = random.uniform(-1, 1)
