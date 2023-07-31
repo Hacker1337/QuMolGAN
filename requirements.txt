@@ -1,0 +1,4 @@
+ matplotlib pandas  rdkit torchvision torch
+
+scikit-learn
+pip: frechetdist pennylane

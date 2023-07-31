@@ -52,8 +52,8 @@ def main(config):
 
     # Solver for training and testing StarGAN.
     self = Solver(config)
-    from logger import Logger
-    self.logger = Logger(self.log_dir)
+    # from logger import Logger
+    # self.logger = Logger(self.log_dir)
 
     # Learning rate cache for decaying.
     g_lr = self.g_lr
@@ -85,7 +85,7 @@ def main(config):
         x_tensor = self.label2onehot(x, self.m_dim)
         
         if config.quantum:
-            sample_list = [gen_circuit(gen_weights) for i in range(self.batch_size)]
+            sample_list = [torch.tensor(gen_circuit(gen_weights)) for i in range(self.batch_size)]
             z = torch.stack(tuple(sample_list)).to(self.device).float()
         else:
             z = self.sample_z(self.batch_size)
@@ -223,14 +223,14 @@ def main(config):
                 log += ", {}: {:.4f}".format(tag, value)
             print(log)
 
-            with open(os.path.join(self.resutl_dir, 'metric_scores_log.csv'), 'a') as file:
+            with open(os.path.join(self.result_dir, 'metric_scores_log.csv'), 'a') as file:
                 writer = csv.writer(file)
                 writer.writerow([i+1, et]+[torch.mean(rewardR).item(), torch.mean(rewardF).item()]+\
                                [value for tag, value in loss.items()])
 
-            if self.use_tensorboard or True:
-                for tag, value in loss.items():
-                    self.logger.scalar_summary(tag, value, i+1)
+            # if self.use_tensorboard or True:
+            #     for tag, value in loss.items():
+            #         self.logger.scalar_summary(tag, value, i+1)
 
 
         # Save model checkpoints.
